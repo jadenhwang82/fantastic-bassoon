@@ -3,12 +3,12 @@ import google.generativeai as genai
 import telebot
 
 # 1. 환경 변수에서 비밀 키 가져오기 (GitHub Secrets에 등록한 값들)
-GEMINI_API_KEY = os.environ.get('AIzaSyD0UBaCuYt0VQ-t3ppcFbHQkSmISJlk2Xo')
-TELEGRAM_TOKEN = os.environ.get('8637864904:AAGTXb7t8ppt8-teYNlG9Yh-haoDYrcAjlk')
-CHAT_ID = os.environ.get('241848545')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+CHAT_ID = os.environ.get('CHAT_ID')
 
 # 2. Gemini AI 설정
-genai.configure(api_key=AIzaSyD0UBaCuYt0VQ-t3ppcFbHQkSmISJlk2Xo)
+genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 def get_market_briefing():
@@ -31,13 +31,13 @@ def get_market_briefing():
         return f"❌ 브리핑 생성 중 오류 발생: {str(e)}"
 
 def send_telegram_message(content):
-    bot = telebot.TeleBot(8637864904:AAGTXb7t8ppt8-teYNlG9Yh-haoDYrcAjlk)
+    bot = telebot.TeleBot(TELEGRAM_TOKEN)
     # 긴 메시지의 경우 잘릴 수 있어 4000자 단위로 끊어 보냅니다.
     if len(content) > 4000:
         for i in range(0, len(content), 4000):
-            bot.send_message(241848545, content[i:i+4000])
+            bot.send_message(CHAT_ID, content[i:i+4000])
     else:
-        bot.send_message(241848545, content)
+        bot.send_message(CHAT_ID, content)
 
 # 실행부
 if __name__ == "__main__":
