@@ -9,7 +9,7 @@ CHAT_ID = os.environ.get('CHAT_ID')
 
 # 2. Gemini AI 설정
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
 def get_market_briefing():
     # Gemini에게 전달할 명령문 (프롬프트)
