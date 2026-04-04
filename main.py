@@ -12,7 +12,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 def get_market_briefing():
     # 최신이면서 가장 안정적인 모델 명칭 사용
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-pro')
     
     prompt = "오늘 아침 8시 기준, 미국 증시 종가와 한국 증시 주요 뉴스를 요약해줘."
     
