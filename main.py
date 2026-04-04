@@ -7,25 +7,34 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
-# Gemini 초기화
+# 1. Gemini 초기화
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_market_briefing():
-    # 최신이면서 가장 안정적인 모델 명칭 사용
-    model = genai.GenerativeModel('gemini-1.5-pro')
-    
-    prompt = "오늘 아침 8시 기준, 미국 증시 종가와 한국 증시 주요 뉴스를 요약해줘."
-    
+def get_diagnostic_info():
     try:
-        # 혹시 모를 안전장치: 응답 생성
-        response = model.generate_content(prompt)
-        return response.text
+        # 내 API 키가 접근 가능한 모델 리스트를 가져옵니다.
+        model_list = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_list.append(m.name)
+        
+        if not model_list:
+            return "❌ 접근 가능한 모델이 하나도 없습니다. API 키 설정을 확인하세요."
+        
+        # 목록 중 가장 첫 번째 모델로 테스트를 시도합니다.
+        test_model_name = model_list[0]
+        model = genai.GenerativeModel(test_model_name)
+        response = model.generate_content("안녕? 너는 누구니?")
+        
+        result = f"✅ 성공! 사용 가능한 모델 목록:\n" + "\n".join(model_list)
+        result += f"\n\n🤖 테스트 응답 ({test_model_name}): {response.text[:20]}..."
+        return result
+
     except Exception as e:
-        # 오류 발생 시 구체적인 메시지를 텔레그램으로 보냄
-        return f"❌ AI 생성 실패: {str(e)}"
+        return f"❌ 진단 중 오류 발생: {str(e)}"
 
 def send_telegram():
-    content = get_market_briefing()
+    content = get_diagnostic_info()
     bot = telebot.TeleBot(TELEGRAM_TOKEN)
     bot.send_message(CHAT_ID, content)
 
