@@ -21,6 +21,8 @@ def get_briefing():
     # 확실히 사용 가능한 모델명 (지난 로그에서 확인된 2.5-flash)
     model_name = 'models/gemini-2.5-flash'
     model = genai.GenerativeModel(model_name)
+    tools=[{'google_search': {}}] 
+    )
     
     # 프롬프트에 현재 날짜를 명시적으로 주입
     prompt = f"""
