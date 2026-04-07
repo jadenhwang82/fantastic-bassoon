@@ -1,41 +1,54 @@
 import os
 import google.generativeai as genai
 import telebot
+from datetime import datetime
+import pytz # 시간대 처리를 위해 필요
 
-# 환경 변수 로드
+# 1. 환경 변수 읽기
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
-# Gemini 설정
+# 2. Gemini 설정
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_briefing():
-    # ⚠️ 여기를 반드시 확인하세요! 2.5-flash로 강제 고정합니다.
+    # 한국 시간대(KST) 및 브리즈번 시간대 설정
+    kst = pytz.timezone('Asia/Seoul')
+    now_kst = datetime.now(kst)
+    current_date = now_kst.strftime('%Y년 %m월 %d일')
+    
+    # 확실히 사용 가능한 모델명 (지난 로그에서 확인된 2.5-flash)
     model_name = 'models/gemini-2.5-flash'
+    model = genai.GenerativeModel(model_name)
+    
+    # 프롬프트에 현재 날짜를 명시적으로 주입
+    prompt = f"""
+    오늘은 {current_date}입니다. 전문 경제 분석가로서 아래 항목들을 요약해서 보고해줘.
+    
+    1. 미국 시장 마감: 나스닥, S&P500 등 주요 지수 변동과 핵심 원인 (현재 날짜 기준 최신 정보)
+    2. 국내 핵심 관심사: 삼성전자 및 반도체 업황, KODEX 지수 펀드 관련 주요 소식
+    3. 미래 산업: 로봇 및 AI 자동화 관련 테크 뉴스
+    4. 지표: 현재 환율 (USD/KRW, AUD/KRW) 및 DRAM 현물가 동향
+    5. 발견: 투자자가 참고할 만한 오늘만의 새로운 글로벌 매크로 인사이트 한 가지
+    
+    주의: 반드시 {current_date} 시점의 데이터를 바탕으로 한국어로 작성하고, 읽기 편하게 이모지를 사용해줘.
+    """
     
     try:
-        model = genai.GenerativeModel(model_name)
-        # 테스트용 아주 짧은 프롬프트
-        prompt = """
-        당신은 전문 경제 분석가입니다. 오늘 아침 8시 기준 다음 정보를 요약해줘:
-        1. 미국 증시 마감 상황 (나스닥, S&P500 지수 및 주요 변동 원인)
-        2. 반도체 업황 및 DRAM 현물 가격 동향
-        3. 한국 증시 개장 전 주요 뉴스 3가지
-        4. 주요 환율 정보 (USD/KRW, AUD/KRW 현황)
-        
-        가독성 좋게 이모지를 사용해 보고서 형식으로 작성해줘.
-        """
         response = model.generate_content(prompt)
-        return response.text
+        return f"📅 {current_date} 시장 브리핑\n\n" + response.text
     except Exception as e:
-        # 에러 메시지에 어떤 모델명을 썼는지 강제로 출력하게 함
-        return f"❌ [시도모델:{model_name}] 생성 오류: {str(e)}"
+        return f"❌ 브리핑 생성 오류 ({current_date}): {str(e)}"
 
-def send_telegram():
+def send_to_telegram():
     content = get_briefing()
     bot = telebot.TeleBot(TELEGRAM_TOKEN)
-    bot.send_message(CHAT_ID, content)
+    if len(content) > 4000:
+        for i in range(0, len(content), 4000):
+            bot.send_message(CHAT_ID, content[i:i+4000])
+    else:
+        bot.send_message(CHAT_ID, content)
 
 if __name__ == "__main__":
-    send_telegram()
+    send_to_telegram()
