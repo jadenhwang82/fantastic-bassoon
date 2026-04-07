@@ -1,25 +1,27 @@
 name: Daily Morning Briefing
+
 on:
   schedule:
-    - cron: '0 23 * * *' # 한국 시간 오전 8시
-  workflow_dispatch: # 수동 실행 버튼 활성화
+    # UTC 23:00은 한국 시간(KST) 오전 8:00 / 브리즈번(AEST) 오전 9:00입니다.
+    - cron: '0 23 * * *'
+  workflow_dispatch: # 수동 실행 버튼을 활성화합니다.
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v2에서 v4로 업데이트
+        uses: actions/checkout@v4 # 최신 노드 버전 대응
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # v2에서 v5로 업데이트
+        uses: actions/setup-python@v5 # 최신 노드 버전 대응
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyTelegramBotAPI google-generativeai
+          pip install pyTelegramBotAPI google-generativeai pytz
 
       - name: Run script
         env:
