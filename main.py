@@ -19,29 +19,36 @@ def get_briefing():
         now_kst = datetime.now(kst)
         current_date = now_kst.strftime('%Y년 %m월 %d일')
         
-        # 모델 설정 (서버가 요청한 정확한 이름 'google_search' 사용)
-        # ⚠️ 딕셔너리가 아닌 리스트 내 문자열 형식이 가장 호환성이 높습니다.
+        # 모델 설정 - 에러 메시지가 요청한 'google_search_retrieval' 객체 형식입니다.
         model = genai.GenerativeModel(
             model_name='gemini-2.5-flash',
-            tools=['google_search']
+            tools=[
+                {
+                    "google_search_retrieval": {
+                        "dynamic_retrieval_config": {
+                            "mode": "unspecified", # 기본 모드 설정
+                            "dynamic_threshold": 0.06 # 검색 필요성 문턱값
+                        }
+                    }
+                }
+            ]
         )
 
-        # 사용자님의 투자 관심사를 반영한 정교한 프롬프트
         prompt = f"""
-        오늘은 {current_date}입니다. '구글 검색' 기능을 사용하여 다음의 최신 정보를 확인하고 요약해줘:
+        오늘은 {current_date}입니다. '구글 검색'을 통해 다음 실시간 정보를 분석해줘:
         
-        1. 미국 증시 상황: 나스닥, S&P500 지수와 주요 기술주 변동 원인
-        2. 국내 반도체 핵심: 삼성전자(우선주 포함) 주가 현황 및 HBM/DRAM 관련 뉴스
-        3. 투자 섹터: KODEX 인덱스 관련 동향 및 로봇/AI 자동화 산업의 새로운 소식
-        4. 환율 및 지표: USD/KRW, AUD/KRW 현재 환율과 주요 원자재 가격
+        1. 미국 증시 마감 상황 (나스닥, S&P500) 및 변동 이유
+        2. 삼성전자 주가 및 국내 반도체(HBM/DRAM) 최신 뉴스
+        3. 로봇 및 AI 자동화 산업 관련 주요 소식
+        4. 환율 (USD/KRW, AUD/KRW) 정보
         
-        주의: 반드시 '실시간 검색 결과'를 바탕으로 작성하고, 정보 하단에 출처 링크를 포함해줘.
+        반드시 오늘({current_date})의 실제 데이터를 바탕으로 작성하고 정보 출처를 포함해줘.
         """
         
         response = model.generate_content(prompt)
         return f"📅 {current_date} 실시간 시장 브리핑\n\n" + response.text
     except Exception as e:
-        return f"❌ 브리핑 생성 중 오류 발생: {str(e)}"
+        return f"❌ 브리핑 생성 중 상세 오류: {str(e)}"
 
 def send_telegram():
     content = get_briefing()
