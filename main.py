@@ -13,47 +13,39 @@ CHAT_ID = os.environ.get('CHAT_ID')
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_briefing():
-    try:
-        # 시간대 설정
-        kst = pytz.timezone('Asia/Seoul')
-        now_kst = datetime.now(kst)
-        current_date = now_kst.strftime('%Y년 %m월 %d일')
-        
-        # 모델 설정 - 에러 메시지가 요청한 'google_search_retrieval' 객체 형식입니다.
-        model = genai.GenerativeModel(
-            model_name='gemini-2.5-flash',
-            tools=[
-                {
-                    "google_search_retrieval": {
-                        "dynamic_retrieval_config": {
-                            "mode": "unspecified", # 기본 모드 설정
-                            "dynamic_threshold": 0.06 # 검색 필요성 문턱값
-                        }
-                    }
-                }
-            ]
-        )
+    kst = pytz.timezone('Asia/Seoul')
+    now_kst = datetime.now(kst)
+    current_date = now_kst.strftime('%Y년 %m월 %d일')
+    
+    # [전략] 구글 서버의 변덕에 대비해 여러 가지 설정을 순차적으로 시도합니다.
+    tools_options = [
+        ['google_search'], # 최근 통합된 명칭
+        [{'google_search_retrieval': {'dynamic_retrieval_config': {'mode': 'unspecified', 'dynamic_threshold': 0.06}}}] # 이전 명칭
+    ]
+    
+    last_error = ""
+    for tool in tools_options:
+        try:
+            model = genai.GenerativeModel(model_name='gemini-2.5-flash', tools=tool)
+            prompt = f"오늘은 {current_date}입니다. 반드시 구글 검색으로 {current_date}의 실시간 한국/미국 증시와 환율 정보를 요약해줘."
+            response = model.generate_content(prompt)
+            return f"📅 {current_date} 시장 브리핑 (실시간)\n\n" + response.text
+        except Exception as e:
+            last_error = str(e)
+            continue # 실패하면 다음 이름으로 재시도
 
-        prompt = f"""
-        오늘은 {current_date}입니다. '구글 검색'을 통해 다음 실시간 정보를 분석해줘:
-        
-        1. 미국 증시 마감 상황 (나스닥, S&P500) 및 변동 이유
-        2. 삼성전자 주가 및 국내 반도체(HBM/DRAM) 최신 뉴스
-        3. 로봇 및 AI 자동화 산업 관련 주요 소식
-        4. 환율 (USD/KRW, AUD/KRW) 정보
-        
-        반드시 오늘({current_date})의 실제 데이터를 바탕으로 작성하고 정보 출처를 포함해줘.
-        """
-        
+    # 모든 검색 도구가 실패할 경우: 검색 없이 지식 기반으로라도 답변 (최후의 보루)
+    try:
+        model = genai.GenerativeModel(model_name='gemini-2.5-flash')
+        prompt = f"오늘은 {current_date}입니다. 현재 시점의 시장 동향을 아는 대로 알려줘. (검색 기능 일시 오류)"
         response = model.generate_content(prompt)
-        return f"📅 {current_date} 실시간 시장 브리핑\n\n" + response.text
+        return f"⚠️ {current_date} 브리핑 (검색 오류 포함)\n\n" + response.text + f"\n\n(참고: {last_error})"
     except Exception as e:
-        return f"❌ 브리핑 생성 중 상세 오류: {str(e)}"
+        return f"❌ 최종 생성 실패: {str(e)}"
 
 def send_telegram():
     content = get_briefing()
     bot = telebot.TeleBot(TELEGRAM_TOKEN)
-    
     if len(content) > 4000:
         for i in range(0, len(content), 4000):
             bot.send_message(CHAT_ID, content[i:i+4000])
