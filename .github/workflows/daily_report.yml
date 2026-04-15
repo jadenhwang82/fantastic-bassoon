@@ -2,8 +2,8 @@ name: Daily Morning Briefing
 
 on:
   schedule:
-    # UTC 23:00은 한국 시간(KST) 오전 8:00 / 브리즈번(AEST) 오전 9:00입니다.
-    - cron: '0 23 * * *'
+    # 0분 대신 17분이나 34분처럼 애매한 시간으로 변경 (KST 오전 8시 17분)
+    - cron: '17 23 * * *'
   workflow_dispatch: # 수동 실행 버튼을 활성화합니다.
 
 jobs:
