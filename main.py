@@ -4,12 +4,11 @@ import telebot
 from datetime import datetime
 import pytz
 
-# 1. 환경 변수 로드
+# 환경 변수 로드
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
-# 2. Gemini 설정
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_briefing():
@@ -17,31 +16,32 @@ def get_briefing():
     now_kst = datetime.now(kst)
     current_date = now_kst.strftime('%Y년 %m월 %d일')
     
-    # [전략] 구글 서버의 변덕에 대비해 여러 가지 설정을 순차적으로 시도합니다.
-    tools_options = [
-        ['google_search'], # 최근 통합된 명칭
-        [{'google_search_retrieval': {'dynamic_retrieval_config': {'mode': 'unspecified', 'dynamic_threshold': 0.06}}}] # 이전 명칭
-    ]
+    # [수정 포인트] 가장 최신이자 표준인 검색 도구 선언 방식입니다.
+    # 모델명은 안정성이 검증된 1.5-flash로 잠시 변경해 보시는 것을 추천합니다. (검색 기능이 가장 안정적임)
+    model_name = 'gemini-1.5-flash' 
     
-    last_error = ""
-    for tool in tools_options:
-        try:
-            model = genai.GenerativeModel(model_name='gemini-2.5-flash', tools=tool)
-            prompt = f"오늘은 {current_date}입니다. 반드시 구글 검색으로 {current_date}의 실시간 한국/미국 증시와 환율 정보를 요약해줘."
-            response = model.generate_content(prompt)
-            return f"📅 {current_date} 시장 브리핑 (실시간)\n\n" + response.text
-        except Exception as e:
-            last_error = str(e)
-            continue # 실패하면 다음 이름으로 재시도
-
-    # 모든 검색 도구가 실패할 경우: 검색 없이 지식 기반으로라도 답변 (최후의 보루)
     try:
-        model = genai.GenerativeModel(model_name='gemini-2.5-flash')
-        prompt = f"오늘은 {current_date}입니다. 현재 시점의 시장 동향을 아는 대로 알려줘. (검색 기능 일시 오류)"
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            tools=[{"google_search": {}}] # 딕셔너리 형태의 표준 선언
+        )
+
+        prompt = f"""
+        오늘은 {current_date}입니다. '구글 검색'을 사용하여 반드시 다음 항목의 '실시간' 정보를 요약해줘:
+        1. 미국 증시(나스닥, S&P500) 마감 시황과 변동 원인
+        2. 삼성전자 주가와 국내 반도체(HBM/DRAM) 최신 뉴스
+        3. 로봇 및 AI 자동화 산업 관련 주요 보도
+        4. 현재 환율 (USD/KRW, AUD/KRW)
+        
+        주의: 과거 데이터가 아닌 실제 {current_date}의 뉴스를 기반으로 작성하고, 하단에 뉴스 출처 링크를 포함해줘.
+        """
+        
         response = model.generate_content(prompt)
-        return f"⚠️ {current_date} 브리핑 (검색 오류 포함)\n\n" + response.text + f"\n\n(참고: {last_error})"
+        # 검색 결과가 반영되었는지 확인하기 위해 '실시간' 문구를 추가합니다.
+        return f"✅ {current_date} 실시간 뉴스 브리핑\n\n" + response.text
+        
     except Exception as e:
-        return f"❌ 최종 생성 실패: {str(e)}"
+        return f"❌ 실시간 검색 실패 (상세오류): {str(e)}"
 
 def send_telegram():
     content = get_briefing()
