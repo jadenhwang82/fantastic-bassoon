@@ -61,7 +61,7 @@ def get_briefing():
     try:
         # Temperature를 0.0으로 설정하여 상상(할루시네이션)을 100% 차단
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
+            model_name='gemini-2.5-flash',
             generation_config=genai.types.GenerationConfig(temperature=0.0)
         )
 
