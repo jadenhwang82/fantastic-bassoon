@@ -28,7 +28,7 @@ def fetch_naver_news(query, display=3):
         "X-Naver-Client-Id": NAVER_CLIENT_ID,
         "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
     }
-    params = {"query": query, "display": display, "sort": "sim"} # sim: 정확도순, date: 최신순
+    params = {"query": query, "display": display, "sort": "date"} # sim: 정확도순, date: 최신순
     
     try:
         response = requests.get(url, headers=headers, params=params)
