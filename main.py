@@ -17,15 +17,18 @@ NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_exchange_rate(ticker):
-    """환율 숫자를 100% 정확하게 가져오는 정밀 센서"""
+    """주말/공휴일에도 멈추지 않는 정밀 센서 (최근 5일치 조회)"""
     try:
         data = yf.Ticker(ticker)
-        # 전일 마감 가격 혹은 현재가 가져오기
-        price = data.history(period='1d')['Close'].iloc[-1]
-        return f"{price:,.2f}"
-    except:
-        return "데이터 확인 불가"
-
+        # 1d 대신 5d로 조회하여 가장 최근 거래일 데이터를 가져옵니다.
+        hist = data.history(period='5d')
+        if not hist.empty:
+            price = hist['Close'].iloc[-1]
+            return f"{price:,.2f}"
+        return "데이터 없음"
+    except Exception as e:
+        return f"센서 오류: {str(e)}"
+        
 def clean_html(text):
     text = re.sub('<[^<]+>', '', text)
     return text.replace('&quot;', '"').replace('&apos;', "'").replace('&amp;', '&')
