@@ -3,26 +3,27 @@ name: Daily Morning Briefing
 on:
   schedule:
     - cron: '0 22 * * *' # UTC 22:00 = 한국 시간(KST) 다음날 07:00
-  workflow_dispatch: # 수동 실행 버튼 유지
+  workflow_dispatch: # 수동 실행 버튼 유지 (테스트용)
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # 최신 노드 버전 대응
+        uses: actions/checkout@v4 # 최신 노드 버전 대응 완료
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # 최신 노드 버전 대응
+        uses: actions/setup-python@v5 # 최신 노드 버전 대응 완료
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install all dependencies
+        # 별도의 requirements.txt 없이 여기서 모든 부품을 한 번에 설치합니다.
         run: |
           python -m pip install --upgrade pip
-          pip install pyTelegramBotAPI google-generativeai pytz
+          pip install pyTelegramBotAPI google-generativeai pytz requests yfinance pandas lxml
 
-      - name: Run script
+      - name: Run Market Briefing Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
