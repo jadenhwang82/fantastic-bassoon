@@ -21,7 +21,9 @@ jobs:
         # 별도의 requirements.txt 없이 여기서 모든 부품을 한 번에 설치합니다.
         run: |
           python -m pip install --upgrade pip
-          pip install pyTelegramBotAPI google-generativeai pytz requests yfinance pandas lxml
+          # google-generativeai를 최신 버전으로 설치하여 모델 인식률을 높입니다.
+          pip install -U google-generativeai
+          pip install pyTelegramBotAPI pytz requests yfinance pandas lxml
 
       - name: Run Market Briefing Script
         env:
