@@ -74,11 +74,14 @@ def get_briefing():
     raw_news += f"■ [로봇/AI]\n" + fetch_naver_news("로봇 피지컬AI ETF 신규 상장", 4)
 
     try:
-        # 모델명을 'gemini-1.5-flash'로 변경 (가장 안정적인 프리티어 모델)
+        # 모델명을 'gemini-1.5-flash'로 설정하되, 
+        # 혹시 모를 에러를 대비해 가장 안정적인 식별자를 사용합니다.
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash', 
+            model_name='gemini-1.5-flash', # 'models/gemini-1.5-flash' 대신 이 형식을 권장합니다.
             generation_config=genai.types.GenerationConfig(temperature=0.0)
         )
+        
+        # (이하 생략)
 
         # 사용자님의 요구사항에 맞춘 정밀 프롬프트
         prompt = f"""
