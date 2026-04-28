@@ -56,54 +56,63 @@ def fetch_naver_news(query, display=3):
     except:
         return f"뉴스 수집 불가 ({query})\n"
 
+# (앞부분 import 및 함수들은 이전과 동일)
+
 def get_briefing():
     kst = pytz.timezone('Asia/Seoul')
     now = datetime.now(kst)
-    # 아침 7시 실행 시점 기준으로 '어제' 날짜 계산
+    # 오늘 아침 7시 읽는 시점 기준
+    display_date = now.strftime('%Y년 %m월 %d일')
+    # 데이터의 기준이 되는 어제 날짜
     target_date = (now - timedelta(days=1)).strftime('%Y년 %m월 %d일')
     
-    # 2. 정밀 수치 데이터 수집 (Hallucination 방지용 하드데이터)
     usd_krw = get_exchange_rate("USDKRW=X")
     aud_krw = get_exchange_rate("AUDKRW=X")
     
-    # 3. 뉴스 데이터 수집
-    raw_news = f"■ [참고기사] 미국 증시\n" + fetch_naver_news("미국 증시 나스닥 마감")
-    raw_news += f"■ [참고기사] 국내 증시\n" + fetch_naver_news("삼성전자 우선주 KODEX HBM")
-    raw_news += f"■ [참고기사] 로봇/AI\n" + fetch_naver_news("로봇 AI ETF")
+    raw_news = f"■ [미국 증시]\n" + fetch_naver_news("미국 증시 나스닥 S&P500 마감", 4)
+    raw_news += f"■ [국내 증시]\n" + fetch_naver_news("삼성전자 우선주 KODEX HBM 실적", 4)
+    raw_news += f"■ [로봇/AI]\n" + fetch_naver_news("로봇 피지컬AI ETF 신규 상장", 4)
 
-    # 4. Gemini 요약 지시 (정밀 수치 데이터 우선 적용)
     try:
         model = genai.GenerativeModel(
-            model_name='gemini-2.5-flash',
+            model_name='gemini-2.0-flash', # 혹은 사용 가능한 최신 모델
             generation_config=genai.types.GenerationConfig(temperature=0.0)
         )
 
+        # 사용자님의 요구사항에 맞춘 정밀 프롬프트
         prompt = f"""
-        너는 전문 금융 애널리스트야. {target_date} 시장 마감 데이터를 바탕으로 
-        다음날 아침에 읽을 브리핑을 작성해.
+        너는 수석 금융 애널리스트야. 제공된 데이터를 바탕으로 {display_date} 아침에 읽을 전문적인 브리핑을 작성해.
         
-        [절대 준수 수치 데이터]
+        [필수 정보]
+        - 보고서 기준일: {target_date} 시장 마감 기준
         - 원/달러 환율: {usd_krw}원
         - 호주달러/원 환율: {aud_krw}원
-        
-        [지시사항]
-        1. 환율 정보는 반드시 위의 [절대 준수 수치 데이터]에 적힌 숫자를 사용해. 
-           뉴스 기사에 적힌 옛날 숫자와 다르다면 내 데이터를 우선해.
-        2. 미국 증시는 오늘 새벽 마감된 최신 상황을 반영해줘.
-        3. 각 섹션마다 수집된 뉴스 링크를 포함하되, 가독성 있게 정리해.
-        4. 어조는 현대적이고 신뢰감 있는 전문가 톤으로 작성해.
 
-        [수집된 뉴스 원문]
+        [보고서 구조 가이드]
+        1. 제목: {display_date} 아침 금융시장 브리핑: (그날의 핵심 키워드를 넣은 멋진 제목)
+        2. Ⅰ. 브리핑 요약: 전체 내용을 3~4줄로 통찰력 있게 요약.
+        3. Ⅱ. 글로벌 증시 동향: 미국 증시(나스닥, S&P500) 중심 분석 및 뉴스 링크.
+        4. Ⅲ. 국내 증시 분석: 코스피/코스닥 흐름, 삼성전자 및 주요 테마 분석 및 뉴스 링크.
+        5. Ⅳ. 주요 섹터 포커스: 로봇 및 AI 산업 관련 심층 요약 및 뉴스 링크.
+        6. Ⅴ. 환율 시장 업데이트: 제공된 환율 수치를 정확히 명시하고 간단한 코멘트.
+        7. Ⅵ. 애널리스트 코멘트 및 전망: 향후 투자 유의점이나 전망 제시.
+
+        [주의사항]
+        - 환율은 반드시 내가 제공한 숫자를 사용해. 뉴스 기사 속 숫자가 다르다면 무시해.
+        - 링크는 각 섹션 하단에 몰아서 가독성 있게 배치해.
+        - 수집된 뉴스 데이터 외의 허구의 숫자를 지어내지 마.
+
+        [수집된 뉴스 데이터]
         {raw_news}
         """
         
         response = model.generate_content(prompt)
-        header = f"📊 {now.strftime('%Y-%m-%d')} Morning Briefing\n(기준: {target_date} 시장 마감 및 밤사이 주요 소식)\n\n"
-        return header + response.text
+        return f"📊 {display_date} Morning Briefing\n(기준: {target_date} 시장 마감 및 밤사이 주요 소식)\n\n" + response.text
         
     except Exception as e:
         return f"❌ 브리핑 생성 실패: {str(e)}"
 
+# (뒷부분 send_telegram 함수는 동일)
 def send_telegram():
     content = get_briefing()
     bot = telebot.TeleBot(TELEGRAM_TOKEN)
